@@ -1,0 +1,55 @@
+name: Test Schedule Trigger
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      is-prod-release:
+        description: 'Build for production release?'
+        required: false
+        type: boolean
+  schedule:
+    - cron: '*/5 * * * *'  # Every 5 minutes for testing (change after verification)
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test trigger conditions
+        run: |
+          echo "=== Trigger Information ==="
+          echo "Event name: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo ""
+
+          echo "=== Setting Release Variables ==="
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.is-prod-release }}" == "true" ]] || [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "PRE_RELEASE=false"
+            echo "LATEST_RELEASE=true"
+            PRE_RELEASE="false"
+            LATEST_RELEASE="true"
+          else
+            echo "PRE_RELEASE=true"
+            echo "LATEST_RELEASE=false"
+            PRE_RELEASE="true"
+            LATEST_RELEASE="false"
+          fi
+
+          echo ""
+          echo "=== Release Body ==="
+
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "RELEASE_BODY=Automated release from main branch."
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "RELEASE_BODY=Manual release."
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "RELEASE_BODY=Scheduled monthly release."
+          fi
+
+          echo ""
+          echo "=== Summary ==="
+          echo "PRE_RELEASE: $PRE_RELEASE"
+          echo "LATEST_RELEASE: $LATEST_RELEASE"
